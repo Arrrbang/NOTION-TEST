@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>NOTION API HUB — 테스트 페이지</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--gap:12px;--radius:10px;--border:#e5e7eb;--muted:#6b7280}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;margin:0;padding:24px;background:#fafafa;color:#111}
+    h1{font-size:20px;margin:0 0 16px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+    .row{display:grid;grid-template-columns:1fr 2fr;gap:var(--gap);align-items:center;margin-bottom:10px}
+    .combo{position:relative}
+    .combo input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
+    .combo .list{position:absolute;z-index:10;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;display:none}
+    .combo.open .list{display:block}
+    .item{padding:8px 10px;cursor:pointer}
+    .item:hover{background:#f3f4f6}
+    .tag{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:4px 8px;margin-right:6px;margin-top:6px}
+    .muted{color:var(--muted)}
+    button{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#111;color:#fff;cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid var(--border);padding:8px;text-align:left}
+    th{background:#f9fafb}
+    .hint{font-size:12px;color:var(--muted)}
+    .row .stack{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
+    .pill.active{background:#111;color:#fff;border-color:#111}
+  </style>
+</head>
+<body>
+  <h1>NOTION API HUB — 테스트</h1>
+
+  <div class="card">
+    <div class="row">
+      <label>외교유무 (다중선택)</label>
+      <div class="stack" id="rolesBox">
+        <span class="pill" data-role="DIPLOMAT">DIPLOMAT</span>
+        <span class="pill" data-role="NON-DIPLOMAT">NON-DIPLOMAT</span>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>국가</label>
+      <div class="combo" id="countryCombo">
+        <input type="text" placeholder="국가를 입력/선택 (예: 미국, 중국)" autocomplete="off">
+        <div class="list"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>업체</label>
+      <div class="combo" id="companyCombo">
+        <input type="text" placeholder="업체를 입력/선택 (예: A업체, B업체)" autocomplete="off" disabled>
+        <div class="list"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>지역</label>
+      <div class="combo" id="regionCombo">
+        <input type="text" placeholder="지역을 입력/선택 (예: A지역, B지역)" autocomplete="off" disabled>
+        <div class="list"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>속성</label>
+      <div class="combo" id="typeCombo">
+        <input type="text" placeholder="20FT / 40HC / CONSOLE" autocomplete="off" value="20FT">
+        <div class="list"></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div></div>
+      <div>
+        <button id="btnFetch">조회</button>
+        <span class="hint">CONSOLE은 아직 백엔드 미지원(조회 시 안내만 표시)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="muted">응답</div>
+    <pre id="jsonOut" class="muted" style="white-space:pre-wrap;word-break:break-word;"></pre>
+  </div>
+
+  <div class="card">
+    <div class="muted">표 (item 기준)</div>
+    <div id="tableWrap" class="muted">조회 후 여기에 렌더링됩니다.</div>
+  </div>
+
+<script>
+  // 같은 도메인에서 쓰면 '' 사용. 다른 도메인으로 테스트하려면 절대 URL 넣기.
+  const BASE = 'https://notion-api-hub.vercel.app'; // 예: 'https://notion-api-hub.vercel.app'
+
+  // 간단한 콤보(입력+필터+선택)
+  function makeCombo(el, items = []) {
+    const input = el.querySelector('input');
+    const list = el.querySelector('.list');
+    let data = [...items];
+    let selected = null;
+
+    function render(filter='') {
+      const f = filter.trim().toLowerCase();
+      list.innerHTML = '';
+      const sorted = data
+        .filter(x => x.toLowerCase().includes(f))
+        .sort((a,b) => {
+          // 입력어를 접두로 갖는 항목을 우선
+          const ap = a.toLowerCase().startsWith(f) ? 0 : 1;
+          const bp = b.toLowerCase().startsWith(f) ? 0 : 1;
+          if (ap !== bp) return ap - bp;
+          return a.localeCompare(b, 'ko');
+        });
+      sorted.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = v;
+        div.onclick = () => {
+          selected = v;
+          input.value = v;
+          el.classList.remove('open');
+          list.innerHTML = '';
+          el.dispatchEvent(new CustomEvent('change', { detail: v }));
+        };
+        list.appendChild(div);
+      });
+    }
+
+    function setItems(arr) {
+      data = [...new Set(arr.filter(Boolean))];
+      input.disabled = data.length === 0;
+      input.value = '';
+      selected = null;
+      render('');
+    }
+
+    function getValue() {
+      return selected || input.value.trim();
+    }
+
+    input.addEventListener('focus', () => { el.classList.add('open'); render(input.value); });
+    input.addEventListener('input', () => { el.classList.add('open'); render(input.value); });
+    document.addEventListener('click', (e) => {
+      if (!el.contains(e.target)) el.classList.remove('open');
+    });
+
+    // 초기 렌더
+    setItems(items);
+
+    return { setItems, getValue, input, list, root: el };
+  }
+
+  const rolesBox = document.getElementById('rolesBox');
+  rolesBox.addEventListener('click', (e) => {
+    const pill = e.target.closest('.pill');
+    if (!pill) return;
+    pill.classList.toggle('active');
+  });
+
+  const countryCombo = makeCombo(document.getElementById('countryCombo'));
+  const companyCombo = makeCombo(document.getElementById('companyCombo'));
+  const regionCombo  = makeCombo(document.getElementById('regionCombo'));
+  const typeCombo    = makeCombo(document.getElementById('typeCombo'), ['20FT','40HC','CONSOLE']);
+
+  // 국가 선택 시 → 업체 목록 갱신
+  countryCombo.root.addEventListener('change', async (ev) => {
+    const country = countryCombo.getValue();
+    const db = await fetchDebug();
+    const companies = db.dbStructure?.[country] ? Object.keys(db.dbStructure[country]) : [];
+    companyCombo.setItems(companies);
+    // 지역은 국가/업체를 알아야 가져올 수 있으므로 비움
+    regionCombo.setItems([]);
+  });
+
+  // 업체 선택 시 → 지역 목록 갱신 (costs API rows에서 region 추출)
+  companyCombo.root.addEventListener('change', async (ev) => {
+    const country = countryCombo.getValue();
+    const company = companyCombo.getValue();
+    if (!country || !company) { regionCombo.setItems([]); return; }
+    // 임의의 타입(20FT)로 rows만 받아 지역 후보 set
+    const url = `${BASE}/api/costs/${encodeURIComponent(country)}?company=${encodeURIComponent(company)}&type=${encodeURIComponent('20FT')}`;
+    try {
+      const res = await fetch(url);
+      const j = await res.json();
+      const regions = (j.rows || []).map(r => r.region).filter(Boolean);
+      regionCombo.setItems([...new Set(regions)]);
+    } catch(e) {
+      console.error(e);
+      regionCombo.setItems([]);
+    }
+  });
+
+  // 초기 로딩: 국가 목록 채우기
+  (async function init() {
+    const dbg = await fetchDebug();
+    const countries = dbg.countries || Object.keys(dbg.dbStructure || {});
+    countryCombo.setItems(countries || []);
+  })();
+
+  async function fetchDebug() {
+    const res = await fetch(`${BASE}/api/debug/config`);
+    if (!res.ok) throw new Error('debug/config 오류');
+    return await res.json();
+  }
+
+  // 버튼 클릭 → 조회
+  document.getElementById('btnFetch').addEventListener('click', async () => {
+    const country = countryCombo.getValue();
+    const company = companyCombo.getValue();
+    const region  = regionCombo.getValue();
+    const type    = typeCombo.getValue();
+    const roles   = Array.from(rolesBox.querySelectorAll('.pill.active')).map(p=>p.dataset.role);
+
+    if (!country || !company) {
+      alert('국가와 업체를 선택하세요.');
+      return;
+    }
+    if (type === 'CONSOLE') {
+      document.getElementById('jsonOut').textContent = 'CONSOLE 속성은 아직 백엔드에 없어서 조회하지 않았습니다. (나중에 지원 예정)';
+      document.getElementById('tableWrap').innerHTML = '<div class="muted">조회 없음</div>';
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('company', company);
+    params.set('type', type);
+    if (region) params.set('region', region);
+    if (roles.length) params.set('roles', roles.join(','));
+
+    const url = `${BASE}/api/costs/${encodeURIComponent(country)}?${params.toString()}`;
+    try {
+      const res = await fetch(url);
+      const j = await res.json();
+
+      document.getElementById('jsonOut').textContent = JSON.stringify(j, null, 2);
+      renderTable(j, type, Boolean(region));
+    } catch (e) {
+      document.getElementById('jsonOut').textContent = String(e);
+      document.getElementById('tableWrap').innerHTML = '<div class="muted">오류로 표를 표시할 수 없습니다.</div>';
+    }
+  });
+
+  function renderTable(data, type, hasRegionFilter) {
+    const wrap = document.getElementById('tableWrap');
+    if (!data || data.ok === false) {
+      wrap.innerHTML = '<div class="muted">응답이 비어있거나 오류입니다.</div>';
+      return;
+    }
+
+    // region 유무에 따라 평면/그룹 테이블
+    if (hasRegionFilter) {
+      // 평면: { values: {item: num}, extras: {item: text} }
+      const values = data.values || {};
+      const extras = data.extras || {};
+      const items = Object.keys(values);
+
+      if (items.length === 0) {
+        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+        return;
+      }
+
+      let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+      for (const it of items) {
+        html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(values[it])}</td><td>${escapeHtml(extras[it] ?? '')}</td></tr>`;
+      }
+      html += `</tbody></table>`;
+      wrap.innerHTML = html;
+
+    } else {
+      // 그룹: { valuesByRegion: {region:{item:num}}, extrasByRegion: {region:{item:text}} }
+      const vbr = data.valuesByRegion || {};
+      const ebr = data.extrasByRegion || {};
+      const regions = Object.keys(vbr);
+
+      if (regions.length === 0) {
+        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+        return;
+      }
+
+      let html = '';
+      for (const reg of regions) {
+        const vals = vbr[reg] || {};
+        const exts = ebr[reg] || {};
+        const items = Object.keys(vals);
+
+        html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
+        html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+        for (const it of items) {
+          html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(vals[it])}</td><td>${escapeHtml(exts[it] ?? '')}</td></tr>`;
+        }
+        html += `</tbody></table>`;
+      }
+      wrap.innerHTML = html;
+    }
+  }
+
+  function fmt(v){ return (v===null||v===undefined) ? '' : v; }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,(m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) }
+</script>
+</body>
+</html>
