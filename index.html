@@ -299,7 +299,11 @@
   }
 
   function fmt(v){ return (v===null||v===undefined) ? '' : v; }
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,(m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) }
+  function escapeHtml(s){
+  return String(s)
+    .replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
+    .replace(/\n/g, '<br>'); // ✅ 줄바꿈을 <br>로 변환
+}
 </script>
 </body>
 </html>
