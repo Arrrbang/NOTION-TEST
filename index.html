@@ -95,53 +95,6 @@
 <script>
   // 같은 도메인에서 쓰면 '' 사용. 다른 도메인으로 테스트하려면 절대 URL 넣기.
   const BASE = 'https://notion-api-hub.vercel.app'; // 예: 'https://notion-api-hub.vercel.app'
-
-  //노션 추가정보 칸의 볼드체, 밑줄, 색상 등을 가져오는 부분
-
-  function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (m) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[m]));
-}
-
-// 🧩 노션의 rich_text → HTML 변환
-function notionRichToHtml(richTexts = []) {
-  return richTexts.map(rt => {
-    let t = escapeHtml(rt.text?.content || "");
-    const ann = rt.annotations || {};
-
-    // 스타일 변환
-    if (ann.bold) t = `<b>${t}</b>`;
-    if (ann.italic) t = `<i>${t}</i>`;
-    if (ann.underline) t = `<u>${t}</u>`;
-    if (ann.strikethrough) t = `<s>${t}</s>`;
-    if (ann.code) t = `<code>${t}</code>`;
-
-    // 색상 (default는 제외)
-    if (ann.color && ann.color !== "default") {
-      // 노션 색상 이름은 HTML 색상명과 다를 수 있으므로 일부 매핑
-      const colorMap = {
-        red: "#dc2626", orange: "#ea580c", yellow: "#ca8a04",
-        green: "#16a34a", blue: "#2563eb", purple: "#7c3aed",
-        pink: "#db2777", gray: "#6b7280"
-      };
-      const htmlColor = colorMap[ann.color] || ann.color;
-      t = `<span style="color:${htmlColor}">${t}</span>`;
-    }
-
-    // 링크
-    if (rt.text?.link?.url) {
-      const url = rt.text.link.url;
-      t = `<a href="${url}" target="_blank" rel="noopener noreferrer">${t}</a>`;
-    }
-
-    return t;
-  }).join("");
-}
   
   // 간단한 콤보(입력+필터+선택)
   function makeCombo(el, items = []) {
