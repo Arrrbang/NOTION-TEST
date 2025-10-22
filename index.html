@@ -252,54 +252,40 @@
       }
     
       const rows = data.rows || [];
+      if (rows.length === 0) {
+        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+        return;
+      }
     
       if (hasRegionFilter) {
-        // 평면: 지역 지정 시
-        const values = data.values || {};
-        const extras = data.extras || {};
-        const filtered = rows.filter(r => values.hasOwnProperty(r.item));
-    
-        if (filtered.length === 0) {
-          wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
-          return;
-        }
-    
+        // ✅ 지역 선택된 경우
         let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-        for (const row of filtered) {
+        for (const row of rows) {
           html += `<tr>
             <td>${escapeHtml(row.item)}</td>
-            <td>${fmt(values[row.item])}</td>
+            <td>${fmt(row[type])}</td>
             <td>${row.extra ?? ''}</td>
           </tr>`;
         }
         html += `</tbody></table>`;
         wrap.innerHTML = html;
-    
       } else {
-        // 그룹: 지역 미지정 시
-        const vbr = data.valuesByRegion || {};
-        const ebr = data.extrasByRegion || {};
-        const regions = Object.keys(vbr);
-    
-        if (regions.length === 0) {
-          wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
-          return;
+        // ✅ 지역 선택 안 된 경우 → 지역별 그룹 표시 (노션 순서 유지)
+        const grouped = {};
+        for (const r of rows) {
+          const region = r.region || '기타';
+          if (!grouped[region]) grouped[region] = [];
+          grouped[region].push(r);
         }
     
         let html = '';
-        for (const reg of regions) {
-          const vals = vbr[reg] || {};
-          const exts = ebr[reg] || {};
-          const filtered = rows.filter(r => r.region === reg);
-    
-          if (filtered.length === 0) continue;
-    
-          html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
+        for (const region of Object.keys(grouped)) {
+          html += `<h3 style="margin-top:18px">${escapeHtml(region)} (${type})</h3>`;
           html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-          for (const row of filtered) {
+          for (const row of grouped[region]) {
             html += `<tr>
               <td>${escapeHtml(row.item)}</td>
-              <td>${fmt(vals[row.item])}</td>
+              <td>${fmt(row[type])}</td>
               <td>${row.extra ?? ''}</td>
             </tr>`;
           }
@@ -308,13 +294,23 @@
         wrap.innerHTML = html;
       }
     }
+    
+    function fmt(v) {
+      return (v === null || v === undefined) ? '' : v;
+    }
+    
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/[&<>"']/g, (m) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        }[m]))
+        .replace(/\n/g, '<br>');
+    }
 
-  function fmt(v){ return (v===null||v===undefined) ? '' : v; }
-  function escapeHtml(s){
-  return String(s)
-    .replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
-    .replace(/\n/g, '<br>'); // ✅ 줄바꿈을 <br>로 변환
-}
 </script>
 </body>
 </html>
