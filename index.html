@@ -263,12 +263,15 @@
         return;
       }
 
+      function renderRich(s) {
+        return String(s ?? '').replace(/\n/g, '<br>');
+      }
       let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
       for (const it of items) {
         html += `<tr>
           <td>${escapeHtml(it)}</td>
           <td>${fmt(values[it])}</td>
-          <td>${extras[it] ?? ''}</td> <!-- ✅ escapeHtml 제거 -->
+          <td>${renderRich(extras[it])}</td> <!-- ✅ escapeHtml 제거 -->
         </tr>`;
       }
       html += `</tbody></table>`;
