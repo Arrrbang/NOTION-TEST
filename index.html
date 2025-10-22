@@ -265,7 +265,11 @@
 
       let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
       for (const it of items) {
-        html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(values[it])}</td><td>${escapeHtml(extras[it] ?? '')}</td></tr>`;
+        html += `<tr>
+          <td>${escapeHtml(it)}</td>
+          <td>${fmt(values[it])}</td>
+          <td>${extras[it] ?? ''}</td> <!-- ✅ escapeHtml 제거 -->
+        </tr>`;
       }
       html += `</tbody></table>`;
       wrap.innerHTML = html;
@@ -290,7 +294,7 @@
         html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
         html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
         for (const it of items) {
-          html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(vals[it])}</td><td>${escapeHtml(exts[it] ?? '')}</td></tr>`;
+          html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(vals[it])}</td><td>${exts[it] ?? ''}</td></tr>`;
         }
         html += `</tbody></table>`;
       }
