@@ -256,7 +256,7 @@
       // 평면: { values: {item: num}, extras: {item: text} }
       const values = data.values || {};
       const extras = data.extras || {};
-      const items = Object.keys(values);
+      const items = (data.rows || []).map(r => r.item);
 
       if (items.length === 0) {
         wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
