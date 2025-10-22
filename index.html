@@ -244,66 +244,70 @@
     }
   });
 
-  function renderTable(data, type, hasRegionFilter) {
-    const wrap = document.getElementById('tableWrap');
-    if (!data || data.ok === false) {
-      wrap.innerHTML = '<div class="muted">응답이 비어있거나 오류입니다.</div>';
-      return;
-    }
-
-    // region 유무에 따라 평면/그룹 테이블
-    if (hasRegionFilter) {
-      // 평면: { values: {item: num}, extras: {item: text} }
-      const values = data.values || {};
-      const extras = data.extras || {};
-      const items = (data.rows || []).map(r => r.item);
-
-      if (items.length === 0) {
-        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+    function renderTable(data, type, hasRegionFilter) {
+      const wrap = document.getElementById('tableWrap');
+      if (!data || data.ok === false) {
+        wrap.innerHTML = '<div class="muted">응답이 비어있거나 오류입니다.</div>';
         return;
       }
-
-      function renderRich(s) {
-        return String(s ?? '').replace(/\n/g, '<br>');
-      }
-      let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-      for (const it of items) {
-        html += `<tr>
-          <td>${escapeHtml(it)}</td>
-          <td>${fmt(values[it])}</td>
-          <td>${renderRich(extras[it])}</td> <!-- ✅ escapeHtml 제거 -->
-        </tr>`;
-      }
-      html += `</tbody></table>`;
-      wrap.innerHTML = html;
-
-    } else {
-      // 그룹: { valuesByRegion: {region:{item:num}}, extrasByRegion: {region:{item:text}} }
-      const vbr = data.valuesByRegion || {};
-      const ebr = data.extrasByRegion || {};
-      const regions = Object.keys(vbr);
-
-      if (regions.length === 0) {
-        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
-        return;
-      }
-
-      let html = '';
-      for (const reg of regions) {
-        const vals = vbr[reg] || {};
-        const exts = ebr[reg] || {};
-        const items = Object.keys(vals);
-
-        html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
-        html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-        for (const it of items) {
-          html += `<tr><td>${escapeHtml(it)}</td><td>${fmt(vals[it])}</td><td>${exts[it] ?? ''}</td></tr>`;
+    
+      const rows = data.rows || [];
+    
+      if (hasRegionFilter) {
+        // 평면: 지역 지정 시
+        const values = data.values || {};
+        const extras = data.extras || {};
+        const filtered = rows.filter(r => values.hasOwnProperty(r.item));
+    
+        if (filtered.length === 0) {
+          wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+          return;
+        }
+    
+        let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+        for (const row of filtered) {
+          html += `<tr>
+            <td>${escapeHtml(row.item)}</td>
+            <td>${fmt(values[row.item])}</td>
+            <td>${row.extra ?? ''}</td>
+          </tr>`;
         }
         html += `</tbody></table>`;
+        wrap.innerHTML = html;
+    
+      } else {
+        // 그룹: 지역 미지정 시
+        const vbr = data.valuesByRegion || {};
+        const ebr = data.extrasByRegion || {};
+        const regions = Object.keys(vbr);
+    
+        if (regions.length === 0) {
+          wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+          return;
+        }
+    
+        let html = '';
+        for (const reg of regions) {
+          const vals = vbr[reg] || {};
+          const exts = ebr[reg] || {};
+          const filtered = rows.filter(r => r.region === reg);
+    
+          if (filtered.length === 0) continue;
+    
+          html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
+          html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+          for (const row of filtered) {
+            html += `<tr>
+              <td>${escapeHtml(row.item)}</td>
+              <td>${fmt(vals[row.item])}</td>
+              <td>${row.extra ?? ''}</td>
+            </tr>`;
+          }
+          html += `</tbody></table>`;
+        }
+        wrap.innerHTML = html;
       }
-      wrap.innerHTML = html;
     }
-  }
 
   function fmt(v){ return (v===null||v===undefined) ? '' : v; }
   function escapeHtml(s){
