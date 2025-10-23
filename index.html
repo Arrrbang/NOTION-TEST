@@ -305,9 +305,8 @@
       
       // CSS 변수에서 검색 핀 색을 읽어옴(없으면 기본 빨강)
       const searchColor = getComputedStyle(document.documentElement).getPropertyValue('--pin-search').trim() || '#ef4444';
-      // 라벨을 “검색”으로 보여주고 싶으면 true, '검색'
-      const searchIcon  = makeSvgPinIcon(searchColor, true, '검색');
-      // 라벨 없이 점만 쓰고 싶다면: const searchIcon = makeSvgPinIcon(searchColor, false);
+      const searchIcon  = makeSvgPinIcon(searchColor, true, false);
+      // 라벨 없이 점만 쓰고 싶다면: const searchIcon = makeSvgPinIcon(searchColor, false); 라벨을 쓰고 싶으면 const searchIcon  = makeSvgPinIcon(searchColor, true, '▼');
       
       const tmp = L.marker(c, { icon: searchIcon }).addTo(map);
       setTimeout(()=> map.removeLayer(tmp), 4000);
