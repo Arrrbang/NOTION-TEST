@@ -112,19 +112,22 @@
     const list = el.querySelector('.list');
     let data = [...items];
     let selected = null;
-
+  
     function render(filter='') {
       const f = filter.trim().toLowerCase();
       list.innerHTML = '';
-      const sorted = data
-        .filter(x => x.toLowerCase().includes(f))
-        .sort((a,b) => {
-          // 입력어를 접두로 갖는 항목을 우선
-          const ap = a.toLowerCase().startsWith(f) ? 0 : 1;
-          const bp = b.toLowerCase().startsWith(f) ? 0 : 1;
-          if (ap !== bp) return ap - bp;
-          return a.localeCompare(b, 'ko');
-        });
+      const filtered = data.filter(x => x.toLowerCase().includes(f));
+  
+      // ✅ 숫자순 정렬 (숫자인 경우)
+      const sorted = filtered.sort((a, b) => {
+        const an = Number(a), bn = Number(b);
+        if (!isNaN(an) && !isNaN(bn)) return an - bn; // 숫자순
+        const ap = a.toLowerCase().startsWith(f) ? 0 : 1;
+        const bp = b.toLowerCase().startsWith(f) ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        return a.localeCompare(b, 'ko');
+      });
+  
       sorted.forEach(v => {
         const div = document.createElement('div');
         div.className = 'item';
@@ -139,7 +142,7 @@
         list.appendChild(div);
       });
     }
-
+  
     function setItems(arr) {
       data = [...new Set(arr.filter(Boolean))];
       input.disabled = data.length === 0;
@@ -147,22 +150,21 @@
       selected = null;
       render('');
     }
-
+  
     function getValue() {
       return selected || input.value.trim();
     }
-
+  
     input.addEventListener('focus', () => { el.classList.add('open'); render(input.value); });
     input.addEventListener('input', () => { el.classList.add('open'); render(input.value); });
     document.addEventListener('click', (e) => {
       if (!el.contains(e.target)) el.classList.remove('open');
     });
-
-    // 초기 렌더
+  
     setItems(items);
-
     return { setItems, getValue, input, list, root: el };
   }
+
 
   const rolesBox = document.getElementById('rolesBox');
   rolesBox.addEventListener('click', (e) => {
