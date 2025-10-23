@@ -4,25 +4,24 @@
   <meta charset="utf-8" />
   <title>NOTION API HUB — 테스트 페이지</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  
-<style>
+  <style>
     :root{
       --gap:12px;
       --radius:10px;
       --border:#e5e7eb;
       --muted:#6b7280;
-      /* 💚 메인 포인트 색상: 진한 녹색 */
+      /* 💚 메인 포인트 색상: 진한 녹색 (🛠️ 추가) */
       --main-color: #14532D; 
-      /* 🟢 테이블 하이라이트 색상: 밝은 녹색 */
+      /* 🟢 테이블 하이라이트 색상: 밝은 녹색 (🛠️ 추가) */
       --table-header: #D1FAE5;
       --table-text: #14532D;
       
-      /* 🛠️ 기본 카드 너비 (선택 정보) */
+      /* 🛠️ 기본 카드 너비 (선택 정보) (🛠️ 추가) */
       --base-max-width: 700px;
 
       /* 📌 지도 핀 색상 (기존 유지) */
-      --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
-      --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
+      --pin-reg:   #2563eb; 
+      --pin-search:#ef4444;
     }
     
     /* 🛠️ BODY 스타일 수정: 중앙 정렬 담당 */
@@ -32,13 +31,14 @@
       padding: 24px 0;
       background: #fafafa;
       color: #111;
-      display: flex; /* flex 컨테이너로 설정 */
-      flex-direction: column; /* 세로로 아이템 정렬 */
-      align-items: center; /* 전체 콘텐츠 중앙 정렬 */
+      display: flex; /* 🛠️ 추가 */
+      flex-direction: column; /* 🛠️ 추가 */
+      align-items: center; /* 🛠️ 추가 */
     }
     
+    /* 🛠️ H1 스타일 수정 */
     h1{font-size:20px;margin:0 0 16px; padding: 0 16px; width: min(100%, var(--base-max-width));} 
-    /* h3에도 스타일 적용 (표 제목) */
+    /* 🛠️ H3 스타일 추가 */
     h3{ color: var(--main-color); margin-top:18px; font-weight:700; } 
 
     /* 🛠️ CARD 스타일 수정: 기본 너비 제한 (선택 정보 카드) */
@@ -48,19 +48,19 @@
       border-radius:var(--radius);
       padding:16px; 
       margin-bottom:16px;
-      width: min(100% - 32px, var(--base-max-width)); /* 최대 너비 제한 */
-      box-sizing: border-box; 
+      width: min(100% - 32px, var(--base-max-width)); /* 🛠️ 수정: 최대 너비 제한 */
+      box-sizing: border-box; /* 🛠️ 추가 */
     }
     
-    /* 🛠️ 확장된 카드 스타일 (응답, 표 카드): 기본 너비의 150% */
+    /* 🛠️ 확장된 카드 스타일 (응답, 표 카드): 기본 너비의 150% (🛠️ 추가) */
     .card.expanded {
         width: min(100% - 32px, calc(var(--base-max-width) * 1.5));
     }
     
     /* 🛠️ 항목명과 드롭다운 거리 조정: 1fr 3fr로 변경 */
     .row{display:grid;grid-template-columns:1fr 3fr;gap:var(--gap);align-items:center;margin-bottom:10px}
-    /* '지역'과 '지도 열기' 버튼을 한 줄에 놓기 위한 특수 row */
-    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; } /* 2fr:지역, 1fr:버튼 */
+    /* 🛠️ '지역'과 '지도 열기' 버튼을 위한 특수 row (🛠️ 수정) */
+    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; } 
     /* '조회' 버튼 등, label이 비어있는 경우 */
     .row:last-child { margin-bottom: 0; }
     
@@ -71,7 +71,7 @@
       position:absolute;
       z-index:10;
       left:0;
-      max-width: 100%; /* 부모 너비 초과 금지 */
+      max-width: 100%; /* 🛠️ right:0 대신 max-width 사용 */
       max-height:220px;
       overflow:auto;
       background:#fff;
@@ -87,50 +87,64 @@
     .tag{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:4px 8px;margin-right:6px;margin-top:6px}
     .muted{color:var(--muted)}
 
-    /* 💚 버튼 스타일 수정: 진한 녹색 적용 */
-    button{padding:10px 14px;border-radius:8px;border:1px solid var(--main-color);background:var(--main-color);color:#fff;cursor:pointer; transition: background-color 0.15s, border-color 0.15s}
+    /* 🛠️ '지도 열기' 버튼이 들어간 그리드 셀 정렬 (🛠️ 추가) */
+    .row.region-map-row > div:last-child {
+        text-align: right; 
+        align-self: center; 
+    }
+
+    /* 💚 버튼 스타일 수정: 진한 녹색 적용 (🛠️ 수정) */
+    button{
+      padding:10px 14px;
+      border-radius:8px;
+      border:1px solid var(--main-color);
+      background:var(--main-color);
+      color:#fff;
+      cursor:pointer; 
+      transition: background-color 0.15s, border-color 0.15s;
+      width: fit-content; /* 🛠️ 수정: 너비를 내용에 맞게 축소 */
+      white-space: nowrap; /* 🛠️ 추가: 텍스트 줄바꿈 방지 */
+    }
     button:hover:not(:disabled){ background: #228b22; border-color: #228b22; }
     button:disabled{opacity:.6;cursor:not-allowed}
     
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:8px;text-align:left; vertical-align: top;}
     
-    /* 🟢 표 제목 행 (Header) 스타일 */
+    /* 🟢 표 제목 행 (Header) 스타일 (🛠️ 수정) */
     th{background:var(--table-header); color:var(--table-text); font-weight:700;}
     
-    /* 🛠️ 표 항목 열 너비 조정 및 배경 적용 (첫 번째 열) */
+    /* 🛠️ 표 항목 열 너비 조정 및 배경 적용 (첫 번째 열) (🛠️ 수정) */
     table thead th:first-child,
     table tbody td:first-child { width: 30%; font-weight: 700; } 
-    table tbody td:first-child { background: var(--table-header); } /* 항목 열 배경 밝은 녹색 */
+    table tbody td:first-child { background: var(--table-header); } 
     
     .hint{font-size:12px;color:var(--muted)}
     .row .stack{display:flex;gap:8px;flex-wrap:wrap}
     
-    /* 💚 Pill 버튼 스타일 수정: 활성화 시 진한 녹색 적용 */
+    /* 💚 Pill 버튼 스타일 수정: 활성화 시 진한 녹색 적용 (🛠️ 수정) */
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
     .pill.active{background:var(--main-color);color:#fff;border-color:var(--main-color)}
 
-    /* 🛠️ CBM 입력 칸 디자인 통일 */
+    /* 🛠️ CBM 입력 칸 디자인 통일 (🛠️ 추가) */
     #cbmInput {
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 8px;
       outline: none;
-      box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+      box-sizing: border-box; 
     }
 
-      /* 커스텀 핀 공통 스타일(없다면 추가) */
+      /* 커스텀 핀 공통 스타일 유지 */
       .pin-wrap{
         position:relative; width:26px; height:26px;
-        /* transform 제거 */
         filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
       }
       .pin-svg{ display:block; width:100%; height:100%; }
       .pin-label{ position:absolute; left:50%; top:-6px; transform:translateX(-50%); background:rgba(255,255,255,.85); border:1px solid #e5e7eb; border-radius:6px; padding:2px 6px; font-size:11px; white-space:nowrap; }
   </style>
-  
-  <!-- Leaflet 지도 & Geocoder (Nominatim) -->
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
@@ -163,7 +177,7 @@
         <div class="list"></div>
       </div>
       <div>
-        <button id="btnToggleMap" type="button" style="width: 100%;">지도 열기</button>
+        <button id="btnToggleMap" type="button">지도 열기</button>
       </div>
     </div>
     
@@ -201,7 +215,6 @@
       <div><button id="btnFetch">조회</button></div>
     </div>
   </div>
-
 
   <div class="card expanded">
     <div class="muted">표 (item 기준, 노션 순서 유지)</div>
