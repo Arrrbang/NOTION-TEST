@@ -4,12 +4,35 @@
   <meta charset="utf-8" />
   <title>NOTION API HUB — 테스트 페이지</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root{--gap:12px;--radius:10px;--border:#e5e7eb;--muted:#6b7280}
+  
+<style>
+    :root{
+      --gap:12px;
+      --radius:10px;
+      --border:#e5e7eb;
+      --muted:#6b7280;
+      /* 💚 메인 포인트 색상: 진한 녹색 */
+      --main-color: #14532D; 
+      /* 🟢 테이블 하이라이트 색상: 밝은 녹색 */
+      --table-header: #D1FAE5;
+      --table-text: #14532D;
+
+      /* 📌 지도 핀 색상 (기존 유지) */
+      --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
+      --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
+    }
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;margin:0;padding:24px;background:#fafafa;color:#111}
     h1{font-size:20px;margin:0 0 16px}
+    /* h3에도 스타일 적용 (표 제목) */
+    h3{ color: var(--main-color); margin-top:18px; font-weight:700; } 
+
     .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-    .row{display:grid;grid-template-columns:1fr 2fr;gap:var(--gap);align-items:center;margin-bottom:10px}
+    /* 🛠️ 항목명과 드롭다운 거리 조정: 1fr 3fr로 변경 */
+    .row{display:grid;grid-template-columns:1fr 3fr;gap:var(--gap);align-items:center;margin-bottom:10px}
+    /* '지역'과 '지도 열기' 버튼을 한 줄에 놓기 위한 특수 row */
+    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; }
+    /* '조회' 버튼 등, label이 비어있는 경우 */
+    .row:last-child { margin-bottom: 0; }
     .combo{position:relative}
     .combo input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
     .combo .list{position:absolute;z-index:10;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;display:none}
@@ -18,22 +41,36 @@
     .item:hover{background:#f3f4f6}
     .tag{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:4px 8px;margin-right:6px;margin-top:6px}
     .muted{color:var(--muted)}
-    button{padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:#111;color:#fff;cursor:pointer}
+
+    /* 💚 버튼 스타일 수정: 진한 녹색 적용 */
+    button{padding:10px 14px;border-radius:8px;border:1px solid var(--main-color);background:var(--main-color);color:#fff;cursor:pointer; transition: background-color 0.15s, border-color 0.15s}
+    button:hover:not(:disabled){ background: #228b22; border-color: #228b22; } /* 살짝 밝은 녹색으로 호버 효과 */
     button:disabled{opacity:.6;cursor:not-allowed}
+    
     table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{border:1px solid var(--border);padding:8px;text-align:left}
-    th{background:#f9fafb}
+    th,td{border:1px solid var(--border);padding:8px;text-align:left; vertical-align: top;}
+    
+    /* 🟢 표 제목 행 (Header) 스타일 */
+    th{background:var(--table-header); color:var(--table-text); font-weight:700;}
+    
+    /* 🛠️ 표 항목 열 너비 조정 (첫 번째 열) */
+    table thead th:first-child,
+    table tbody td:first-child { width: 30%; font-weight: 700; } /* 항목을 볼드체로, 너비 확보 */
+    table tbody td:first-child { background: var(--table-header); } /* 항목 열 배경 밝은 녹색 */
+    
     .hint{font-size:12px;color:var(--muted)}
     .row .stack{display:flex;gap:8px;flex-wrap:wrap}
+    
+    /* 💚 Pill 버튼 스타일 수정: 활성화 시 진한 녹색 적용 */
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
-    .pill.active{background:#111;color:#fff;border-color:#111}
+    .pill.active{background:var(--main-color);color:#fff;border-color:var(--main-color)}
+
       /* 🔧 색상만 바꿔 쓰고 싶다면 여기 두 줄만 수정하면 됩니다 */
       :root{
         --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
         --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
       }
-
-      /* 커스텀 핀 공통 스타일(없다면 추가) */
+      /* ... (나머지 지도 스타일 유지) */
       .pin-wrap{
         position:relative; width:26px; height:26px;
         /* transform 제거 */
@@ -53,7 +90,6 @@
   <h1>NOTION API HUB — 테스트</h1>
 
   <div class="card">
-    <!-- 외교유무: 다중선택 -->
     <div class="row">
       <label>외교유무 (다중선택)</label>
       <div class="stack" id="rolesBox">
@@ -62,7 +98,6 @@
       </div>
     </div>
 
-    <!-- 국가 -->
     <div class="row">
       <label>국가</label>
       <div class="combo" id="countryCombo">
@@ -71,22 +106,17 @@
       </div>
     </div>
 
-    <!-- 지역 -->
-    <div class="row">
+    <div class="row region-map-row">
       <label>지역</label>
       <div class="combo" id="regionCombo">
         <input type="text" placeholder="지역을 입력/선택 (예: A지역, B지역)" autocomplete="off" disabled>
         <div class="list"></div>
       </div>
-    </div>
-
-    <!-- 지도 토글 + 지도 영역 -->
-    <div class="row">
-      <div></div>
       <div>
-        <button id="btnToggleMap" type="button">지도 열기</button>
+        <button id="btnToggleMap" type="button" style="width: 100%;">지도 열기</button>
       </div>
     </div>
+    
     <div id="mapWrap" style="display:none; margin:8px 0;">
       <div id="map" style="height:360px;border-radius:12px;"></div>
       <div class="muted" style="margin-top:6px">
@@ -95,7 +125,6 @@
       </div>
     </div>
 
-    <!-- 업체 -->
     <div class="row">
       <label>업체</label>
       <div class="combo" id="companyCombo">
@@ -104,7 +133,6 @@
       </div>
     </div>
 
-    <!-- 컨테이너/콘솔 -->
     <div class="row">
       <label>컨테이너/콘솔</label>
       <div class="combo" id="typeCombo">
@@ -113,13 +141,11 @@
       </div>
     </div>
 
-    <!-- CBM (숫자입력: 드롭다운 제거) -->
     <div class="row">
       <label>CBM</label>
       <input id="cbmInput" type="number" min="0" step="1" placeholder="예: 10 (미입력 시 MIN CBM 기준)"/>
     </div>
 
-    <!-- 조회 버튼 -->
     <div class="row">
       <div></div>
       <div><button id="btnFetch">조회</button></div>
@@ -135,7 +161,7 @@
     <div class="muted">표 (item 기준, 노션 순서 유지)</div>
     <div id="tableWrap" class="muted">조회 후 여기에 렌더링됩니다.</div>
   </div>
-
+  
 <script>
   // ─────────────────────────────────────────────────────────
   // 설정
