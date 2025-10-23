@@ -66,12 +66,22 @@
     </div>
 
     <div class="row">
-      <label>속성</label>
+      <label>컨테이너/콘솔</label> <!-- ✅ 라벨 변경 -->
       <div class="combo" id="typeCombo">
         <input type="text" placeholder="20FT / 40HC / CONSOLE" autocomplete="off" value="20FT">
         <div class="list"></div>
       </div>
     </div>
+    
+    <!-- ✅ CBM 드롭다운 추가 (1~60) -->
+    <div class="row">
+      <label>CBM</label>
+      <div class="combo" id="cbmCombo">
+        <input type="text" placeholder="1 ~ 60" autocomplete="off">
+        <div class="list"></div>
+      </div>
+    </div>
+
 
     <div class="row">
       <div></div>
@@ -165,6 +175,9 @@
   const companyCombo = makeCombo(document.getElementById('companyCombo'));
   const regionCombo  = makeCombo(document.getElementById('regionCombo'));
   const typeCombo    = makeCombo(document.getElementById('typeCombo'), ['20FT','40HC','CONSOLE']);
+  const cbmCombo = makeCombo(document.getElementById('cbmCombo'),
+  Array.from({length:60}, (_,i)=> String(i+1))
+);
 
   // 국가 선택 시 → 업체 목록 갱신
   countryCombo.root.addEventListener('change', async (ev) => {
@@ -217,11 +230,6 @@
 
     if (!country || !company) {
       alert('국가와 업체를 선택하세요.');
-      return;
-    }
-    if (type === 'CONSOLE') {
-      document.getElementById('jsonOut').textContent = 'CONSOLE 속성은 아직 백엔드에 없어서 조회하지 않았습니다. (나중에 지원 예정)';
-      document.getElementById('tableWrap').innerHTML = '<div class="muted">조회 없음</div>';
       return;
     }
 
