@@ -349,15 +349,15 @@
       const searchColor = getComputedStyle(document.documentElement).getPropertyValue('--pin-search').trim() || '#ef4444';
       const searchIcon  = makeSvgPinIcon(searchColor, false); // ← 라벨 OFF
       // 라벨 없이 점만 쓰고 싶다면: const searchIcon = makeSvgPinIcon(searchColor, false); 라벨을 쓰고 싶으면 const searchIcon  = makeSvgPinIcon(searchColor, true, '▼');
+        
       const tmp = L.marker(c, {
         icon: searchIcon,
         keyboard: false,
         riseOnHover: true
       }).addTo(map);
       // bindPopup/openPopup 호출 없음 (팝업 완전 제거)
-      
-      const tmp = L.marker(c, { icon: searchIcon }).addTo(map);
       setTimeout(()=> map.removeLayer(tmp), 4000);
+        
       map.setView(c, 9);
 
         // 검색 좌표 기준 최근접 등록 지역 자동 선택
