@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   
 <style>
-    :root{
+:root{
+      /* ... 기존 변수들은 유지 ... */
       --gap:12px;
       --radius:10px;
       --border:#e5e7eb;
@@ -21,18 +22,36 @@
       --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
       --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
     }
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;margin:0;padding:24px;background:#fafafa;color:#111}
-    h1{font-size:20px;margin:0 0 16px}
-    /* h3에도 스타일 적용 (표 제목) */
+    
+    /* 🛠️ BODY 스타일 수정: 최대 너비 설정 및 중앙 정렬 */
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;
+      margin: 0 auto; /* 상하 0, 좌우 auto로 중앙 정렬 */
+      padding: 24px 0; /* 좌우 padding은 컨테이너에서 줄 예정 */
+      background: #fafafa;
+      color: #111;
+      max-width: 700px; /* 전체 컨테이너의 최대 너비를 700px로 제한 */
+    }
+    
+    h1{font-size:20px;margin:0 0 16px; padding: 0 16px;} /* H1도 중앙 컨테이너에 맞게 좌우 패딩 추가 */
     h3{ color: var(--main-color); margin-top:18px; font-weight:700; } 
 
-    .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-    /* 🛠️ 항목명과 드롭다운 거리 조정: 1fr 3fr로 변경 */
+    /* 🛠️ CARD 스타일 수정: 좌우 패딩 추가 */
+    .card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:16px; 
+      margin-bottom:16px;
+      /* body의 max-width 적용을 위해 100% 사용 */
+      width: 100%; 
+      box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+    }
+    
     .row{display:grid;grid-template-columns:1fr 3fr;gap:var(--gap);align-items:center;margin-bottom:10px}
-    /* '지역'과 '지도 열기' 버튼을 한 줄에 놓기 위한 특수 row */
     .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; }
-    /* '조회' 버튼 등, label이 비어있는 경우 */
     .row:last-child { margin-bottom: 0; }
+  
     .combo{position:relative}
     .combo input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
     .combo .list{position:absolute;z-index:10;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;display:none}
