@@ -254,8 +254,41 @@
   let map, markerLayer, geocoder, mapInited = false;
   let mapData = null;           // 전체 MAP.JSON
   let countryMarkers = [];      // 현재 국가 마커 [{name,lat,lng,marker}]
+  let __stickyNotice = null;    // 상단 고정 알림(배너) + 일회성 토스트 둘 다 지원
 
-  function toast(msg) {
+  function toast(msg, opts = {}) {
+    const { sticky = false, timeout = 1500 } = opts;
+  
+    // sticky 모드: 클릭 전까지 유지되는 상단 배너
+    if (sticky) {
+      if (__stickyNotice) __stickyNotice.remove(); // 기존 배너 있으면 교체
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          position: fixed; left: 50%; top: 16px; transform: translateX(-50%);
+          background: rgba(17,17,17,.92); color: #fff; padding: 10px 14px;
+          border-radius: 10px; border: 1px solid rgba(255,255,255,.15);
+          box-shadow: 0 2px 8px rgba(0,0,0,.35);
+          z-index: 10000; font-size: 13px; display:flex; align-items:center; gap:10px;
+        ">
+          <span>${msg}</span>
+          <button id="__stickyClose" type="button" style="
+            background:#fff; color:#111; border:0; border-radius:8px; padding:6px 10px; cursor:pointer;
+          ">닫기</button>
+        </div>
+      `;
+      el.querySelector('#__stickyClose').addEventListener('click', () => {
+        el.remove(); __stickyNotice = null;
+      });
+      // 배너 자체 클릭으로 닫히게 하려면 다음 줄 주석 해제
+      // el.firstElementChild.addEventListener('click', () => { el.remove(); __stickyNotice = null; });
+  
+      document.body.appendChild(el);
+      __stickyNotice = el;
+      return;
+    }
+  
+    // 기본(일회성) 토스트
     const d = document.createElement('div');
     d.textContent = msg;
     d.style.cssText = `
@@ -264,7 +297,12 @@
       z-index: 10000; font-size: 13px;
     `;
     document.body.appendChild(d);
-    setTimeout(()=>d.remove(), 1500);
+    setTimeout(()=> d.remove(), timeout);
+  }
+  
+  // 필요 시 외부에서 강제로 닫는 함수
+  function hideStickyToast(){
+    if (__stickyNotice) { __stickyNotice.remove(); __stickyNotice = null; }
   }
 
   // Haversine 거리(km)
@@ -317,7 +355,7 @@
           const hit = findNearest(c.lat, c.lng, countryMarkers);
           if (hit?.point) {
             regionCombo.setValue(hit.point.name);
-            toast(`가장 가까운 등록 지역: ${hit.point.name} (~${hit.distanceKm.toFixed(1)}km)`);
+            toast(`가장 가까운 등록 지역: ${hit.point.name} (~${hit.distanceKm.toFixed(1)}km)`, { sticky: true });
           }
         }
       })
