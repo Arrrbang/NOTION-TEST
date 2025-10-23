@@ -50,17 +50,17 @@
     </div>
 
     <div class="row">
-      <label>업체</label>
-      <div class="combo" id="companyCombo">
-        <input type="text" placeholder="업체를 입력/선택 (예: A업체, B업체)" autocomplete="off" disabled>
-        <div class="list"></div>
-      </div>
-    </div>
-
-    <div class="row">
       <label>지역</label>
       <div class="combo" id="regionCombo">
         <input type="text" placeholder="지역을 입력/선택 (예: A지역, B지역)" autocomplete="off" disabled>
+        <div class="list"></div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <label>업체</label>
+      <div class="combo" id="companyCombo">
+        <input type="text" placeholder="업체를 입력/선택 (예: A업체, B업체)" autocomplete="off" disabled>
         <div class="list"></div>
       </div>
     </div>
@@ -174,33 +174,36 @@
   const typeCombo    = makeCombo(document.getElementById('typeCombo'), ['20FT','40HC','CONSOLE']);
 
 
-  // 국가 선택 시 → 업체 목록 갱신
-  countryCombo.root.addEventListener('change', async (ev) => {
-    const country = countryCombo.getValue();
-    const db = await fetchDebug();
-    const companies = db.dbStructure?.[country] ? Object.keys(db.dbStructure[country]) : [];
-    companyCombo.setItems(companies);
-    // 지역은 국가/업체를 알아야 가져올 수 있으므로 비움
-    regionCombo.setItems([]);
-  });
+    // 국가 선택 → 지역 채우기
+    countryCombo.root.addEventListener('change', async () => {
+      const country = countryCombo.getValue();
+      if (!country) return;
+      try {
+        const res = await fetch(`${BASE}/api/regions/${encodeURIComponent(country)}`);
+        const j = await res.json();
+        regionCombo.setItems(j.regions || []);
+        companyCombo.setItems([]); // 업체는 지역 선택 후
+      } catch (e) {
+        regionCombo.setItems([]);
+        companyCombo.setItems([]);
+      }
+    });
 
-  // 업체 선택 시 → 지역 목록 갱신 (costs API rows에서 region 추출)
-  companyCombo.root.addEventListener('change', async (ev) => {
-    const country = countryCombo.getValue();
-    const company = companyCombo.getValue();
-    if (!country || !company) { regionCombo.setItems([]); return; }
-    // 임의의 타입(20FT)로 rows만 받아 지역 후보 set
-    const url = `${BASE}/api/costs/${encodeURIComponent(country)}?company=${encodeURIComponent(company)}&type=${encodeURIComponent('20FT')}`;
-    try {
-      const res = await fetch(url);
-      const j = await res.json();
-      const regions = (j.rows || []).map(r => r.region).filter(Boolean);
-      regionCombo.setItems([...new Set(regions)]);
-    } catch(e) {
-      console.error(e);
-      regionCombo.setItems([]);
-    }
-  });
+    // 지역 선택 → 업체 채우기 (옵션: mode=options | data)
+    regionCombo.root.addEventListener('change', async () => {
+      const country = countryCombo.getValue();
+      const region  = regionCombo.getValue();
+      if (!country || !region) return;
+      const mode = 'options'; // 또는 'data' (느리지만 정확)
+      try {
+        const url = `${BASE}/api/companies/by-region?country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&mode=${mode}`;
+        const res = await fetch(url);
+        const j = await res.json();
+        companyCombo.setItems(j.companies || []);
+      } catch (e) {
+        companyCombo.setItems([]);
+      }
+    });
 
   // 초기 로딩: 국가 목록 채우기
   (async function init() {
