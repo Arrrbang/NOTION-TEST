@@ -28,11 +28,18 @@
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
     .pill.active{background:#111;color:#fff;border-color:#111}
   </style>
+
+  <!-- Leaflet 지도 & Geocoder (Nominatim) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 </head>
 <body>
   <h1>NOTION API HUB — 테스트</h1>
 
   <div class="card">
+    <!-- 외교유무: 다중선택 -->
     <div class="row">
       <label>외교유무 (다중선택)</label>
       <div class="stack" id="rolesBox">
@@ -41,6 +48,7 @@
       </div>
     </div>
 
+    <!-- 국가 -->
     <div class="row">
       <label>국가</label>
       <div class="combo" id="countryCombo">
@@ -49,6 +57,7 @@
       </div>
     </div>
 
+    <!-- 지역 -->
     <div class="row">
       <label>지역</label>
       <div class="combo" id="regionCombo">
@@ -56,7 +65,23 @@
         <div class="list"></div>
       </div>
     </div>
-    
+
+    <!-- 지도 토글 + 지도 영역 -->
+    <div class="row">
+      <div></div>
+      <div>
+        <button id="btnToggleMap" type="button">지도 열기</button>
+      </div>
+    </div>
+    <div id="mapWrap" style="display:none; margin:8px 0;">
+      <div id="map" style="height:360px;border-radius:12px;"></div>
+      <div class="muted" style="margin-top:6px">
+        • 핀을 클릭하면 해당 지역이 자동 선택됩니다. • 상단 돋보기에서 위치 검색도 가능합니다.  
+        • 리스트에 없는 지역을 입력한 경우, 최근접 등록 지역으로 자동 보정됩니다.
+      </div>
+    </div>
+
+    <!-- 업체 -->
     <div class="row">
       <label>업체</label>
       <div class="combo" id="companyCombo">
@@ -65,25 +90,25 @@
       </div>
     </div>
 
+    <!-- 컨테이너/콘솔 -->
     <div class="row">
-      <label>컨테이너/콘솔</label> <!-- ✅ 라벨 변경 -->
+      <label>컨테이너/콘솔</label>
       <div class="combo" id="typeCombo">
         <input type="text" placeholder="20FT / 40HC / CONSOLE" autocomplete="off" value="20FT">
         <div class="list"></div>
       </div>
     </div>
-    
+
+    <!-- CBM (숫자입력: 드롭다운 제거) -->
     <div class="row">
       <label>CBM</label>
-      <input id="cbmInput" type="number" min="0" step="1" placeholder="숫자만 입력하세요." />
+      <input id="cbmInput" type="number" min="0" step="1" placeholder="예: 10 (미입력 시 MIN CBM 기준)"/>
     </div>
 
-
+    <!-- 조회 버튼 -->
     <div class="row">
       <div></div>
-      <div>
-        <button id="btnFetch">조회</button>
-      </div>
+      <div><button id="btnFetch">조회</button></div>
     </div>
   </div>
 
@@ -93,36 +118,58 @@
   </div>
 
   <div class="card">
-    <div class="muted">표 (item 기준)</div>
+    <div class="muted">표 (item 기준, 노션 순서 유지)</div>
     <div id="tableWrap" class="muted">조회 후 여기에 렌더링됩니다.</div>
   </div>
 
 <script>
-  // 같은 도메인에서 쓰면 '' 사용. 다른 도메인으로 테스트하려면 절대 URL 넣기.
-  const BASE = 'https://notion-api-hub.vercel.app'; // 예: 'https://notion-api-hub.vercel.app'
-  
-  // 간단한 콤보(입력+필터+선택)
+  // ─────────────────────────────────────────────────────────
+  // 설정
+  // ─────────────────────────────────────────────────────────
+  // 같은 도메인에서 쓰면 '' 사용. 다른 도메인 테스트면 절대 URL 사용.
+  const BASE = 'https://notion-api-hub.vercel.app';
+  // MAP.JSON은 이 HTML과 같은 폴더에 두세요.
+  // 형식:
+  // {
+  //   "미국": [
+  //     { "name": "A지역", "lat": 37.5, "lng": -122.0 },
+  //     { "name": "B지역", "lat": 34.0, "lng": -118.2 }
+  //   ],
+  //   "브라질": [
+  //     { "name": "Brasilia, Brazil", "lat": -15.8267, "lng": -47.9218 }
+  //   ]
+  // }
+  // name은 노션 "지역"과 동일한 텍스트 권장.
+
+  // ─────────────────────────────────────────────────────────
+  // 공통 UI: 다중선택(외교유무) / 콤보(입력+필터+선택)
+  // ─────────────────────────────────────────────────────────
+  const rolesBox = document.getElementById('rolesBox');
+  rolesBox.addEventListener('click', (e) => {
+    const pill = e.target.closest('.pill');
+    if (!pill) return;
+    pill.classList.toggle('active');
+  });
+
   function makeCombo(el, items = []) {
     const input = el.querySelector('input');
-    const list = el.querySelector('.list');
+    const list  = el.querySelector('.list');
     let data = [...items];
     let selected = null;
-  
+
     function render(filter='') {
       const f = filter.trim().toLowerCase();
       list.innerHTML = '';
       const filtered = data.filter(x => x.toLowerCase().includes(f));
-  
-      // ✅ 숫자순 정렬 (숫자인 경우)
+      // 숫자 자연 정렬 + 접두어 우선
       const sorted = filtered.sort((a, b) => {
         const an = Number(a), bn = Number(b);
-        if (!isNaN(an) && !isNaN(bn)) return an - bn; // 숫자순
+        if (!isNaN(an) && !isNaN(bn)) return an - bn;
         const ap = a.toLowerCase().startsWith(f) ? 0 : 1;
         const bp = b.toLowerCase().startsWith(f) ? 0 : 1;
         if (ap !== bp) return ap - bp;
         return a.localeCompare(b, 'ko');
       });
-  
       sorted.forEach(v => {
         const div = document.createElement('div');
         div.className = 'item';
@@ -137,7 +184,7 @@
         list.appendChild(div);
       });
     }
-  
+
     function setItems(arr) {
       data = [...new Set(arr.filter(Boolean))];
       input.disabled = data.length === 0;
@@ -145,67 +192,184 @@
       selected = null;
       render('');
     }
-  
+
     function getValue() {
       return selected || input.value.trim();
     }
-  
+
+    // 추가: 현재 목록/값 세터 (지도/자동보정에서 사용)
+    function getItems() { return [...data]; }
+    function setValue(v) {
+      selected = v;
+      input.value = v;
+      el.dispatchEvent(new CustomEvent('change', { detail: v }));
+    }
+
     input.addEventListener('focus', () => { el.classList.add('open'); render(input.value); });
     input.addEventListener('input', () => { el.classList.add('open'); render(input.value); });
-    document.addEventListener('click', (e) => {
-      if (!el.contains(e.target)) el.classList.remove('open');
-    });
-  
+    document.addEventListener('click', (e) => { if (!el.contains(e.target)) el.classList.remove('open'); });
+
     setItems(items);
-    return { setItems, getValue, input, list, root: el };
+    return { setItems, getItems, getValue, setValue, input, list, root: el };
   }
 
-
-  const rolesBox = document.getElementById('rolesBox');
-  rolesBox.addEventListener('click', (e) => {
-    const pill = e.target.closest('.pill');
-    if (!pill) return;
-    pill.classList.toggle('active');
-  });
-
   const countryCombo = makeCombo(document.getElementById('countryCombo'));
-  const companyCombo = makeCombo(document.getElementById('companyCombo'));
   const regionCombo  = makeCombo(document.getElementById('regionCombo'));
+  const companyCombo = makeCombo(document.getElementById('companyCombo'));
   const typeCombo    = makeCombo(document.getElementById('typeCombo'), ['20FT','40HC','CONSOLE']);
 
+  // ─────────────────────────────────────────────────────────
+  // 지도 상태/유틸 (Leaflet + Geocoder + MAP.JSON)
+  // ─────────────────────────────────────────────────────────
+  let map, markerLayer, geocoder, mapInited = false;
+  let mapData = null;           // 전체 MAP.JSON
+  let countryMarkers = [];      // 현재 국가 마커 [{name,lat,lng,marker}]
 
-    // 국가 선택 → 지역 채우기
-    countryCombo.root.addEventListener('change', async () => {
-      const country = countryCombo.getValue();
-      if (!country) return;
-      try {
-        const res = await fetch(`${BASE}/api/regions/${encodeURIComponent(country)}`);
-        const j = await res.json();
-        regionCombo.setItems(j.regions || []);
-        companyCombo.setItems([]); // 업체는 지역 선택 후
-      } catch (e) {
-        regionCombo.setItems([]);
-        companyCombo.setItems([]);
-      }
+  function toast(msg) {
+    const d = document.createElement('div');
+    d.textContent = msg;
+    d.style.cssText = `
+      position: fixed; left: 50%; top: 24px; transform: translateX(-50%);
+      background: rgba(0,0,0,.75); color: #fff; padding: 8px 12px; border-radius: 8px;
+      z-index: 10000; font-size: 13px;
+    `;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 1500);
+  }
+
+  // Haversine 거리(km)
+  function haversineKm(aLat, aLng, bLat, bLng) {
+    const R = 6371;
+    const dLat = (bLat - aLat) * Math.PI/180;
+    const dLng = (bLng - aLng) * Math.PI/180;
+    const A = Math.sin(dLat/2)**2 +
+              Math.cos(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*
+              Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(A));
+  }
+
+  function findNearest(lat, lng, points) {
+    if (!points || !points.length) return null;
+    let best = null, bestD = Infinity;
+    for (const p of points) {
+      const d = haversineKm(lat, lng, p.lat, p.lng);
+      if (d < bestD) { best = p; bestD = d; }
+    }
+    return { point: best, distanceKm: bestD };
+  }
+
+  async function ensureMapReady() {
+    if (mapInited) return;
+    mapInited = true;
+
+    map = L.map('map').setView([20,0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+    }).addTo(map);
+
+    markerLayer = L.layerGroup().addTo(map);
+
+    geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
+      .on('markgeocode', (e) => {
+        const c = e.geocode.center;
+        const tmp = L.marker(c).addTo(map);
+        setTimeout(()=> map.removeLayer(tmp), 4000);
+        map.setView(c, 9);
+
+        // 검색 좌표 기준 최근접 등록 지역 자동 선택
+        if (countryMarkers.length) {
+          const hit = findNearest(c.lat, c.lng, countryMarkers);
+          if (hit?.point) {
+            regionCombo.setValue(hit.point.name);
+            toast(`가장 가까운 등록 지역: ${hit.point.name} (~${hit.distanceKm.toFixed(1)}km)`);
+          }
+        }
+      })
+      .addTo(map);
+
+    // MAP.JSON 로드
+    try {
+      const r = await fetch('./MAP.JSON', { cache: 'no-store' });
+      mapData = await r.json();
+    } catch (e) {
+      console.warn('MAP.JSON 로드 실패:', e);
+      mapData = {};
+    }
+  }
+
+  function setMapCountry(country) {
+    if (!mapInited) return;
+    markerLayer.clearLayers();
+    countryMarkers = [];
+    if (!mapData || !mapData[country]) return;
+
+    const pts = mapData[country];
+    const bounds = [];
+    pts.forEach(p => {
+      const m = L.marker([p.lat, p.lng]).addTo(markerLayer).bindPopup(p.name);
+      m.on('click', () => {
+        regionCombo.setValue(p.name); // 핀 클릭 → 지역 세팅
+        toast(`지역 선택: ${p.name}`);
+      });
+      countryMarkers.push({ ...p, marker: m });
+      bounds.push([p.lat, p.lng]);
     });
+    if (bounds.length) map.fitBounds(bounds, { padding:[20,20] });
+  }
 
-    // 지역 선택 → 업체 채우기 (옵션: mode=options | data)
-    regionCombo.root.addEventListener('change', async () => {
-      const country = countryCombo.getValue();
-      const region  = regionCombo.getValue();
-      if (!country || !region) return;
-      const mode = 'options'; // 또는 'data' (느리지만 정확)
-      try {
-        const url = `${BASE}/api/companies/by-region?country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&mode=${mode}`;
-        const res = await fetch(url);
-        const j = await res.json();
-        companyCombo.setItems(j.companies || []);
-      } catch (e) {
-        companyCombo.setItems([]);
-      }
-    });
+  // 지도 토글
+  document.getElementById('btnToggleMap').addEventListener('click', async () => {
+    const wrap = document.getElementById('mapWrap');
+    const open = wrap.style.display !== 'none';
+    if (open) {
+      wrap.style.display = 'none';
+      document.getElementById('btnToggleMap').textContent = '지도 열기';
+    } else {
+      wrap.style.display = 'block';
+      await ensureMapReady();
+      const c = countryCombo.getValue();
+      if (c) setMapCountry(c);
+      setTimeout(()=> map.invalidateSize(), 30);
+      document.getElementById('btnToggleMap').textContent = '지도 닫기';
+    }
+  });
 
-  // 초기 로딩: 국가 목록 채우기
+  // ─────────────────────────────────────────────────────────
+  // 국가 → 지역 → 업체 로딩 (백엔드 API 연동)
+  // ─────────────────────────────────────────────────────────
+  countryCombo.root.addEventListener('change', async () => {
+    const country = countryCombo.getValue();
+    if (!country) return;
+    try {
+      const res = await fetch(`${BASE}/api/regions/${encodeURIComponent(country)}`);
+      const j = await res.json();
+      regionCombo.setItems(j.regions || []);
+      companyCombo.setItems([]);
+    } catch {
+      regionCombo.setItems([]);
+      companyCombo.setItems([]);
+    }
+    if (mapInited && document.getElementById('mapWrap').style.display !== 'none') {
+      setMapCountry(country);
+    }
+  });
+
+  regionCombo.root.addEventListener('change', async () => {
+    const country = countryCombo.getValue();
+    const region  = regionCombo.getValue();
+    if (!country || !region) return;
+    const mode = 'options'; // or 'data' (느림)
+    try {
+      const url = `${BASE}/api/companies/by-region?country=${encodeURIComponent(country)}&region=${encodeURIComponent(region)}&mode=${mode}`;
+      const res = await fetch(url);
+      const j = await res.json();
+      companyCombo.setItems(j.companies || []);
+    } catch {
+      companyCombo.setItems([]);
+    }
+  });
+
+  // 초기 국가 목록
   (async function init() {
     const dbg = await fetchDebug();
     const countries = dbg.countries || Object.keys(dbg.dbStructure || {});
@@ -218,18 +382,36 @@
     return await res.json();
   }
 
-  // 버튼 클릭 → 조회
+  // ─────────────────────────────────────────────────────────
+  // 조회: 드롭다운에 없는 ‘자유 입력 지역’은 최근접 등록 지역으로 자동 보정 후 호출
+  // ─────────────────────────────────────────────────────────
   document.getElementById('btnFetch').addEventListener('click', async () => {
     const country = countryCombo.getValue();
+    let   region  = regionCombo.getValue();   // 사용자가 직접 입력 가능
     const company = companyCombo.getValue();
-    const region  = regionCombo.getValue();
     const type    = typeCombo.getValue();
     const roles   = Array.from(rolesBox.querySelectorAll('.pill.active')).map(p=>p.dataset.role);
-    const cbmVal = parseInt(document.getElementById('cbmInput').value, 10);
+    const cbmVal  = parseInt(document.getElementById('cbmInput').value, 10);
 
     if (!country || !company) {
       alert('국가와 업체를 선택하세요.');
       return;
+    }
+
+    // (중요) 지역 자유입력 시 최근접 등록 지역으로 보정
+    const list = regionCombo.getItems();
+    if (region && !list.includes(region)) {
+      try {
+        await ensureMapReady();
+        const pick = await geocodeNearest(region, country);
+        if (pick) {
+          toast(`입력한 지역이 없어 가장 가까운 등록 지역(${pick.name})으로 대체합니다 (~${pick.distKm.toFixed(1)}km)`);
+          region = pick.name;
+          regionCombo.setValue(region);
+        }
+      } catch (e) {
+        console.warn('최근접 보정 실패:', e);
+      }
     }
 
     const params = new URLSearchParams();
@@ -237,13 +419,12 @@
     params.set('type', type);
     if (region) params.set('region', region);
     if (roles.length) params.set('roles', roles.join(','));
-    if (Number.isFinite(cbmVal)) params.set('cbm', String(cbmVal));
+    if (Number.isFinite(cbmVal)) params.set('cbm', String(cbmVal)); // CONSOLE/보정 계산용
 
     const url = `${BASE}/api/costs/${encodeURIComponent(country)}?${params.toString()}`;
     try {
       const res = await fetch(url);
       const j = await res.json();
-
       document.getElementById('jsonOut').textContent = JSON.stringify(j, null, 2);
       renderTable(j, type, Boolean(region));
     } catch (e) {
@@ -252,23 +433,65 @@
     }
   });
 
-    function renderTable(data, type, hasRegionFilter) {
-      const wrap = document.getElementById('tableWrap');
-      if (!data || data.ok === false) {
-        wrap.innerHTML = '<div class="muted">응답이 비어있거나 오류입니다.</div>';
-        return;
+  // Geocoder를 Promise로 감싸 최근접 등록 지역 찾기
+  async function geocodeNearest(query, country) {
+    if (!mapData || !mapData[country]?.length) return null;
+    const pts = mapData[country];
+
+    const center = await new Promise((resolve, reject) => {
+      if (!geocoder || !geocoder.options?.geocoder) return resolve(null);
+      geocoder.options.geocoder.geocode(query, (results) => {
+        if (results && results[0]) resolve(results[0].center);
+        else resolve(null);
+      });
+      // 타임아웃(2.5s)
+      setTimeout(()=> resolve(null), 2500);
+    });
+
+    if (!center) return null;
+    const hit = findNearest(center.lat, center.lng, pts);
+    if (!hit?.point) return null;
+    return { name: hit.point.name, distKm: hit.distanceKm };
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // 표 렌더링 (rows 순서 그대로, 추가내용은 HTML 그대로)
+  // ─────────────────────────────────────────────────────────
+  function renderTable(data, type, hasRegionFilter) {
+    const wrap = document.getElementById('tableWrap');
+    if (!data || data.ok === false) {
+      wrap.innerHTML = '<div class="muted">응답이 비어있거나 오류입니다.</div>';
+      return;
+    }
+    const rows = data.rows || [];
+    if (rows.length === 0) {
+      wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
+      return;
+    }
+
+    if (hasRegionFilter) {
+      let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+      for (const row of rows) {
+        html += `<tr>
+          <td>${escapeHtml(row.item)}</td>
+          <td>${fmt(row[type])}</td>
+          <td>${row.extra ?? ''}</td>
+        </tr>`;
       }
-    
-      const rows = data.rows || [];
-      if (rows.length === 0) {
-        wrap.innerHTML = '<div class="muted">데이터가 없습니다.</div>';
-        return;
+      html += `</tbody></table>`;
+      wrap.innerHTML = html;
+    } else {
+      const grouped = {};
+      for (const r of rows) {
+        const reg = r.region || '기타';
+        if (!grouped[reg]) grouped[reg] = [];
+        grouped[reg].push(r);
       }
-    
-      if (hasRegionFilter) {
-        // ✅ 지역 선택된 경우
-        let html = `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-        for (const row of rows) {
+      let html = '';
+      for (const reg of Object.keys(grouped)) {
+        html += `<h3 style="margin-top:18px">${escapeHtml(reg)} (${type})</h3>`;
+        html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
+        for (const row of grouped[reg]) {
           html += `<tr>
             <td>${escapeHtml(row.item)}</td>
             <td>${fmt(row[type])}</td>
@@ -276,49 +499,18 @@
           </tr>`;
         }
         html += `</tbody></table>`;
-        wrap.innerHTML = html;
-      } else {
-        // ✅ 지역 선택 안 된 경우 → 지역별 그룹 표시 (노션 순서 유지)
-        const grouped = {};
-        for (const r of rows) {
-          const region = r.region || '기타';
-          if (!grouped[region]) grouped[region] = [];
-          grouped[region].push(r);
-        }
-    
-        let html = '';
-        for (const region of Object.keys(grouped)) {
-          html += `<h3 style="margin-top:18px">${escapeHtml(region)} (${type})</h3>`;
-          html += `<table><thead><tr><th>항목</th><th>${type}</th><th>추가내용</th></tr></thead><tbody>`;
-          for (const row of grouped[region]) {
-            html += `<tr>
-              <td>${escapeHtml(row.item)}</td>
-              <td>${fmt(row[type])}</td>
-              <td>${row.extra ?? ''}</td>
-            </tr>`;
-          }
-          html += `</tbody></table>`;
-        }
-        wrap.innerHTML = html;
       }
+      wrap.innerHTML = html;
     }
-    
-    function fmt(v) {
-      return (v === null || v === undefined) ? '' : v;
-    }
-    
-    function escapeHtml(s) {
-      return String(s)
-        .replace(/[&<>"']/g, (m) => ({
-          '&': '&amp;',
-          '<': '&lt;',
-          '>': '&gt;',
-          '"': '&quot;',
-          "'": '&#39;',
-        }[m]))
-        .replace(/\n/g, '<br>');
-    }
+  }
 
+  function fmt(v){ return (v===null||v===undefined) ? '' : v; }
+  function escapeHtml(s){
+    return String(s)
+      .replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))
+      .replace(/\n/g,'<br>');
+  }
 </script>
 </body>
 </html>
+
