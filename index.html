@@ -330,56 +330,64 @@
     return { point: best, distanceKm: bestD };
   }
 
-  async function ensureMapReady() {
-    if (mapInited) return;
-    mapInited = true;
+async function ensureMapReady() {
+  if (mapInited) return;
+  mapInited = true;
 
-    map = L.map('map').setView([20,0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-    }).addTo(map);
+  // 🔒 세계 한 장만 보이도록 경계 지정 (경도 ±180, 위도는 Web Mercator 유효 범위)
+  const worldBounds = L.latLngBounds([[-85, -180], [85, 180]]);
 
-    markerLayer = L.layerGroup().addTo(map);
+  map = L.map('map', {
+    center: [20, 0],
+    zoom: 2,
+    // 🔑 좌우 복제 월드(래핑) 방지 + 경계 밖으로 드래그 못 하게
+    worldCopyJump: false,
+    maxBounds: worldBounds,
+    maxBoundsViscosity: 1.0    // 0~1 (1이면 경계에 찰싹 붙음)
+  });
 
-    geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
-      .on('markgeocode', (e) => {
+  // 🧭 타일도 래핑 금지 (noWrap) + 동일 경계 지정
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    noWrap: true,
+    bounds: worldBounds
+  }).addTo(map);
+
+  markerLayer = L.layerGroup().addTo(map);
+
+  // (나머지 geocoder 설정/이벤트, MAP.JSON 로딩 등 기존 코드 계속)
+  geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
+    .on('markgeocode', (e) => {
       const c = e.geocode.center;
-      
-      // CSS 변수에서 검색 핀 색을 읽어옴(없으면 기본 빨강)
+
+      // 검색 핀: 라벨/팝업 없이 임시 마커
       const searchColor = getComputedStyle(document.documentElement).getPropertyValue('--pin-search').trim() || '#ef4444';
-      const searchIcon  = makeSvgPinIcon(searchColor, false); // ← 라벨 OFF
-      // 라벨 없이 점만 쓰고 싶다면: const searchIcon = makeSvgPinIcon(searchColor, false); 라벨을 쓰고 싶으면 const searchIcon  = makeSvgPinIcon(searchColor, true, '▼');
-        
-      const tmp = L.marker(c, {
-        icon: searchIcon,
-        keyboard: false,
-        riseOnHover: true
-      }).addTo(map);
-      // bindPopup/openPopup 호출 없음 (팝업 완전 제거)
-      setTimeout(()=> map.removeLayer(tmp), 4000);
-        
+      const searchIcon  = makeSvgPinIcon(searchColor, false);
+      const tmp = L.marker(c, { icon: searchIcon, keyboard:false, riseOnHover:true }).addTo(map);
+      setTimeout(() => map.removeLayer(tmp), 4000);
+
       map.setView(c, 9);
 
-        // 검색 좌표 기준 최근접 등록 지역 자동 선택
-        if (countryMarkers.length) {
-          const hit = findNearest(c.lat, c.lng, countryMarkers);
-          if (hit?.point) {
-            regionCombo.setValue(hit.point.name);
-            toast(`가장 가까운 등록 지역: ${hit.point.name} (~${hit.distanceKm.toFixed(1)}km)`, { sticky: true });
-          }
+      if (countryMarkers.length) {
+        const hit = findNearest(c.lat, c.lng, countryMarkers);
+        if (hit?.point) {
+          regionCombo.setValue(hit.point.name);
+          toast(`가장 가까운 등록 지역: ${hit.point.name} (~${hit.distanceKm.toFixed(1)}km)`, { sticky: true });
         }
-      })
-      .addTo(map);
+      }
+    })
+    .addTo(map);
 
-    // MAP.JSON 로드
-    try {
-      const r = await fetch('./MAP.JSON', { cache: 'no-store' });
-      mapData = await r.json();
-    } catch (e) {
-      console.warn('MAP.JSON 로드 실패:', e);
-      mapData = {};
-    }
+  // MAP.JSON 로드 (기존 그대로)
+  try {
+    const r = await fetch('./MAP.JSON', { cache: 'no-store' });
+    mapData = await r.json();
+  } catch (e) {
+    console.warn('MAP.JSON 로드 실패:', e);
+    mapData = {};
   }
+}
+
 
   function setMapCountry(country) {
     if (!mapInited) return;
