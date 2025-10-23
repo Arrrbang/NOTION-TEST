@@ -4,19 +4,19 @@
   <meta charset="utf-8" />
   <title>NOTION API HUB — 테스트 페이지</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
+<style>
     :root{
       --gap:12px;
       --radius:10px;
       --border:#e5e7eb;
       --muted:#6b7280;
-      /* 💚 메인 포인트 색상: 진한 녹색 (🛠️ 추가) */
+      /* 💚 메인 포인트 색상: 진한 녹색 */
       --main-color: #14532D; 
-      /* 🟢 테이블 하이라이트 색상: 밝은 녹색 (🛠️ 추가) */
+      /* 🟢 테이블 하이라이트 색상: 밝은 녹색 */
       --table-header: #D1FAE5;
       --table-text: #14532D;
       
-      /* 🛠️ 기본 카드 너비 (선택 정보) (🛠️ 추가) */
+      /* 🛠️ 기본 카드 너비 (선택 정보) */
       --base-max-width: 700px;
 
       /* 📌 지도 핀 색상 (기존 유지) */
@@ -24,54 +24,55 @@
       --pin-search:#ef4444;
     }
     
-    /* 🛠️ BODY 스타일 수정: 중앙 정렬 담당 */
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;
       margin: 0; 
       padding: 24px 0;
       background: #fafafa;
       color: #111;
-      display: flex; /* 🛠️ 추가 */
-      flex-direction: column; /* 🛠️ 추가 */
-      align-items: center; /* 🛠️ 추가 */
+      display: flex; 
+      flex-direction: column;
+      align-items: center; 
     }
     
-    /* 🛠️ H1 스타일 수정 */
     h1{font-size:20px;margin:0 0 16px; padding: 0 16px; width: min(100%, var(--base-max-width));} 
-    /* 🛠️ H3 스타일 추가 */
     h3{ color: var(--main-color); margin-top:18px; font-weight:700; } 
 
-    /* 🛠️ CARD 스타일 수정: 기본 너비 제한 (선택 정보 카드) */
     .card{
       background:#fff;
       border:1px solid var(--border);
       border-radius:var(--radius);
       padding:16px; 
       margin-bottom:16px;
-      width: min(100% - 32px, var(--base-max-width)); /* 🛠️ 수정: 최대 너비 제한 */
-      box-sizing: border-box; /* 🛠️ 추가 */
+      width: min(100% - 32px, var(--base-max-width)); 
+      box-sizing: border-box; 
     }
     
-    /* 🛠️ 확장된 카드 스타일 (응답, 표 카드): 기본 너비의 150% (🛠️ 추가) */
     .card.expanded {
         width: min(100% - 32px, calc(var(--base-max-width) * 1.5));
     }
     
-    /* 🛠️ 항목명과 드롭다운 거리 조정: 1fr 3fr로 변경 */
+    /* 🛠️ 항목명(1fr)과 입력칸(3fr) 너비 유지 */
     .row{display:grid;grid-template-columns:1fr 3fr;gap:var(--gap);align-items:center;margin-bottom:10px}
-    /* 🛠️ '지역'과 '지도 열기' 버튼을 위한 특수 row (🛠️ 수정) */
-    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; } 
-    /* '조회' 버튼 등, label이 비어있는 경우 */
+    /* 🛠️ region-map-row는 지도열기 버튼을 안에 넣으므로, 일반 row와 동일하게 1fr 3fr 구조로 되돌립니다. */
+    .row.region-map-row { grid-template-columns: 1fr 3fr; } 
     .row:last-child { margin-bottom: 0; }
     
     /* 🛠️ 드롭다운 목록이 부모 요소(.combo) 너비를 초과하지 않도록 수정 */
     .combo{position:relative}
-    .combo input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
+    /* 🛠️ 콤보박스 입력 필드의 오른쪽 패딩을 늘려 버튼 공간 확보 */
+    .combo input{width:100%;padding:10px 12px 10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
+    
+    /* 🛠️ 지역 콤보박스에만 오른쪽 패딩을 버튼 크기만큼 추가합니다. */
+    #regionCombo input {
+        padding-right: calc( (var(--gap) * 0.7) + 30px); /* 패딩: 30px, 버튼 너비: 약 70px, 총 100px. */
+    }
+
     .combo .list{
       position:absolute;
       z-index:10;
       left:0;
-      max-width: 100%; /* 🛠️ right:0 대신 max-width 사용 */
+      max-width: 100%;
       max-height:220px;
       overflow:auto;
       background:#fff;
@@ -87,46 +88,49 @@
     .tag{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:4px 8px;margin-right:6px;margin-top:6px}
     .muted{color:var(--muted)}
 
-    /* 🛠️ '지도 열기' 버튼이 들어간 그리드 셀 정렬 (🛠️ 추가) */
-    .row.region-map-row > div:last-child {
-        text-align: right; 
-        align-self: center; 
-    }
+    /* 🛠️ '지도 열기' 버튼 컨테이너 스타일 제거 (더 이상 별도의 그리드 셀이 아님) */
+    /* .row.region-map-row > div:last-child { ... } 제거 */
 
-    /* 💚 버튼 스타일 수정: 진한 녹색 적용 (🛠️ 수정) */
+    /* 💚 버튼 스타일 수정: 진한 녹색 적용 */
     button{
-      padding:10px 14px;
       border-radius:8px;
       border:1px solid var(--main-color);
       background:var(--main-color);
       color:#fff;
       cursor:pointer; 
       transition: background-color 0.15s, border-color 0.15s;
-      width: fit-content; /* 🛠️ 수정: 너비를 내용에 맞게 축소 */
-      white-space: nowrap; /* 🛠️ 추가: 텍스트 줄바꿈 방지 */
+      width: fit-content; 
+      white-space: nowrap; 
     }
     button:hover:not(:disabled){ background: #228b22; border-color: #228b22; }
     button:disabled{opacity:.6;cursor:not-allowed}
     
+    /* 🛠️ 지도 열기 버튼 특수 스타일 (지역 콤보박스 안에 위치) */
+    #btnToggleMap {
+        position: absolute;
+        /* 🛠️ 너비 70% 축소: 약 70px로 설정 */
+        width: 70px; 
+        right: 4px; /* 오른쪽에서 살짝 띄우기 */
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 6px 4px; /* 버튼 패딩 조정 */
+        font-size: 13px; /* 폰트 크기 조정 */
+        z-index: 15; /* 드롭다운 목록 위, 입력필드 위에 보이도록 z-index 설정 */
+    }
+
     table{width:100%;border-collapse:collapse;margin-top:10px}
     th,td{border:1px solid var(--border);padding:8px;text-align:left; vertical-align: top;}
-    
-    /* 🟢 표 제목 행 (Header) 스타일 (🛠️ 수정) */
     th{background:var(--table-header); color:var(--table-text); font-weight:700;}
-    
-    /* 🛠️ 표 항목 열 너비 조정 및 배경 적용 (첫 번째 열) (🛠️ 수정) */
     table thead th:first-child,
     table tbody td:first-child { width: 30%; font-weight: 700; } 
     table tbody td:first-child { background: var(--table-header); } 
     
     .hint{font-size:12px;color:var(--muted)}
     .row .stack{display:flex;gap:8px;flex-wrap:wrap}
-    
-    /* 💚 Pill 버튼 스타일 수정: 활성화 시 진한 녹색 적용 (🛠️ 수정) */
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
     .pill.active{background:var(--main-color);color:#fff;border-color:var(--main-color)}
-
-    /* 🛠️ CBM 입력 칸 디자인 통일 (🛠️ 추가) */
+    
+    /* 🛠️ CBM 입력 칸 디자인 통일 (너비는 콤보박스와 동일하게 100%를 따름) */
     #cbmInput {
       width: 100%;
       padding: 10px 12px;
@@ -145,6 +149,7 @@
       .pin-label{ position:absolute; left:50%; top:-6px; transform:translateX(-50%); background:rgba(255,255,255,.85); border:1px solid #e5e7eb; border-radius:6px; padding:2px 6px; font-size:11px; white-space:nowrap; }
   </style>
 
+  
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"/>
@@ -175,11 +180,9 @@
       <div class="combo" id="regionCombo">
         <input type="text" placeholder="지역을 입력/선택 (예: A지역, B지역)" autocomplete="off" disabled>
         <div class="list"></div>
+        <button id="btnToggleMap" type="button">지도 열기</button> 
       </div>
-      <div>
-        <button id="btnToggleMap" type="button">지도 열기</button>
       </div>
-    </div>
     
     <div id="mapWrap" style="display:none; margin:8px 0;">
       <div id="map" style="height:360px;border-radius:12px;"></div>
