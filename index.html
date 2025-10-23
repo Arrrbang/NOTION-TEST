@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   
 <style>
-:root{
-      /* ... 기존 변수들은 유지 ... */
+    :root{
       --gap:12px;
       --radius:10px;
       --border:#e5e7eb;
@@ -17,45 +16,72 @@
       /* 🟢 테이블 하이라이트 색상: 밝은 녹색 */
       --table-header: #D1FAE5;
       --table-text: #14532D;
+      
+      /* 🛠️ 기본 카드 너비 (선택 정보) */
+      --base-max-width: 700px;
 
       /* 📌 지도 핀 색상 (기존 유지) */
       --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
       --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
     }
     
-    /* 🛠️ BODY 스타일 수정: 최대 너비 설정 및 중앙 정렬 */
+    /* 🛠️ BODY 스타일 수정: 중앙 정렬 담당 */
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Noto Sans KR,Segoe UI Emoji,Segoe UI Symbol,sans-serif;
-      margin: 0 auto; /* 상하 0, 좌우 auto로 중앙 정렬 */
-      padding: 24px 0; /* 좌우 padding은 컨테이너에서 줄 예정 */
+      margin: 0; 
+      padding: 24px 0;
       background: #fafafa;
       color: #111;
-      max-width: 700px; /* 전체 컨테이너의 최대 너비를 700px로 제한 */
+      display: flex; /* flex 컨테이너로 설정 */
+      flex-direction: column; /* 세로로 아이템 정렬 */
+      align-items: center; /* 전체 콘텐츠 중앙 정렬 */
     }
     
-    h1{font-size:20px;margin:0 0 16px; padding: 0 16px;} /* H1도 중앙 컨테이너에 맞게 좌우 패딩 추가 */
+    h1{font-size:20px;margin:0 0 16px; padding: 0 16px; width: min(100%, var(--base-max-width));} 
+    /* h3에도 스타일 적용 (표 제목) */
     h3{ color: var(--main-color); margin-top:18px; font-weight:700; } 
 
-    /* 🛠️ CARD 스타일 수정: 좌우 패딩 추가 */
+    /* 🛠️ CARD 스타일 수정: 기본 너비 제한 (선택 정보 카드) */
     .card{
       background:#fff;
       border:1px solid var(--border);
       border-radius:var(--radius);
       padding:16px; 
       margin-bottom:16px;
-      /* body의 max-width 적용을 위해 100% 사용 */
-      width: 100%; 
-      box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+      width: min(100% - 32px, var(--base-max-width)); /* 최대 너비 제한 */
+      box-sizing: border-box; 
     }
     
+    /* 🛠️ 확장된 카드 스타일 (응답, 표 카드): 기본 너비의 150% */
+    .card.expanded {
+        width: min(100% - 32px, calc(var(--base-max-width) * 1.5));
+    }
+    
+    /* 🛠️ 항목명과 드롭다운 거리 조정: 1fr 3fr로 변경 */
     .row{display:grid;grid-template-columns:1fr 3fr;gap:var(--gap);align-items:center;margin-bottom:10px}
-    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; }
+    /* '지역'과 '지도 열기' 버튼을 한 줄에 놓기 위한 특수 row */
+    .row.region-map-row { grid-template-columns: 1fr 2fr 1fr; } /* 2fr:지역, 1fr:버튼 */
+    /* '조회' 버튼 등, label이 비어있는 경우 */
     .row:last-child { margin-bottom: 0; }
-  
+    
+    /* 🛠️ 드롭다운 목록이 부모 요소(.combo) 너비를 초과하지 않도록 수정 */
     .combo{position:relative}
     .combo input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;outline:none}
-    .combo .list{position:absolute;z-index:10;left:0;right:0;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:8px;margin-top:6px;display:none}
+    .combo .list{
+      position:absolute;
+      z-index:10;
+      left:0;
+      max-width: 100%; /* 부모 너비 초과 금지 */
+      max-height:220px;
+      overflow:auto;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:8px;
+      margin-top:6px;
+      display:none;
+    }
     .combo.open .list{display:block}
+    
     .item{padding:8px 10px;cursor:pointer}
     .item:hover{background:#f3f4f6}
     .tag{display:inline-flex;gap:6px;align-items:center;background:#eef2ff;border:1px solid #dbeafe;border-radius:999px;padding:4px 8px;margin-right:6px;margin-top:6px}
@@ -63,7 +89,7 @@
 
     /* 💚 버튼 스타일 수정: 진한 녹색 적용 */
     button{padding:10px 14px;border-radius:8px;border:1px solid var(--main-color);background:var(--main-color);color:#fff;cursor:pointer; transition: background-color 0.15s, border-color 0.15s}
-    button:hover:not(:disabled){ background: #228b22; border-color: #228b22; } /* 살짝 밝은 녹색으로 호버 효과 */
+    button:hover:not(:disabled){ background: #228b22; border-color: #228b22; }
     button:disabled{opacity:.6;cursor:not-allowed}
     
     table{width:100%;border-collapse:collapse;margin-top:10px}
@@ -72,9 +98,9 @@
     /* 🟢 표 제목 행 (Header) 스타일 */
     th{background:var(--table-header); color:var(--table-text); font-weight:700;}
     
-    /* 🛠️ 표 항목 열 너비 조정 (첫 번째 열) */
+    /* 🛠️ 표 항목 열 너비 조정 및 배경 적용 (첫 번째 열) */
     table thead th:first-child,
-    table tbody td:first-child { width: 30%; font-weight: 700; } /* 항목을 볼드체로, 너비 확보 */
+    table tbody td:first-child { width: 30%; font-weight: 700; } 
     table tbody td:first-child { background: var(--table-header); } /* 항목 열 배경 밝은 녹색 */
     
     .hint{font-size:12px;color:var(--muted)}
@@ -84,12 +110,17 @@
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
     .pill.active{background:var(--main-color);color:#fff;border-color:var(--main-color)}
 
-      /* 🔧 색상만 바꿔 쓰고 싶다면 여기 두 줄만 수정하면 됩니다 */
-      :root{
-        --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
-        --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
-      }
-      /* ... (나머지 지도 스타일 유지) */
+    /* 🛠️ CBM 입력 칸 디자인 통일 */
+    #cbmInput {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      box-sizing: border-box; /* 패딩이 너비에 포함되도록 */
+    }
+
+      /* 커스텀 핀 공통 스타일(없다면 추가) */
       .pin-wrap{
         position:relative; width:26px; height:26px;
         /* transform 제거 */
@@ -98,7 +129,7 @@
       .pin-svg{ display:block; width:100%; height:100%; }
       .pin-label{ position:absolute; left:50%; top:-6px; transform:translateX(-50%); background:rgba(255,255,255,.85); border:1px solid #e5e7eb; border-radius:6px; padding:2px 6px; font-size:11px; white-space:nowrap; }
   </style>
-
+  
   <!-- Leaflet 지도 & Geocoder (Nominatim) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -171,7 +202,7 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card expanded">
     <div class="muted">표 (item 기준, 노션 순서 유지)</div>
     <div id="tableWrap" class="muted">조회 후 여기에 렌더링됩니다.</div>
   </div>
