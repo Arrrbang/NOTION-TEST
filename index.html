@@ -27,6 +27,16 @@
     .row .stack{display:flex;gap:8px;flex-wrap:wrap}
     .pill{padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer}
     .pill.active{background:#111;color:#fff;border-color:#111}
+      /* 🔧 색상만 바꿔 쓰고 싶다면 여기 두 줄만 수정하면 됩니다 */
+      :root{
+        --pin-reg:   #2563eb; /* 등록된 지역 핀 색 (파랑)  */
+        --pin-search:#ef4444; /* 검색 결과 핀 색 (빨강)  */
+      }
+
+      /* 커스텀 핀 공통 스타일(없다면 추가) */
+      .pin-wrap{ position:relative; width:26px; height:26px; transform:translate(-50%, -100%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+      .pin-svg{ display:block; width:100%; height:100%; }
+      .pin-label{ position:absolute; left:50%; top:-6px; transform:translateX(-50%); background:rgba(255,255,255,.85); border:1px solid #e5e7eb; border-radius:6px; padding:2px 6px; font-size:11px; white-space:nowrap; }
   </style>
 
   <!-- Leaflet 지도 & Geocoder (Nominatim) -->
@@ -218,6 +228,26 @@
   const companyCombo = makeCombo(document.getElementById('companyCombo'));
   const typeCombo    = makeCombo(document.getElementById('typeCombo'), ['20FT','40HC','CONSOLE']);
 
+  // ── 커스텀 핀 아이콘(SVG) ───────────────────────────
+  // color: 채움색, withLabel: 라벨 표시 여부, labelText: 라벨 내용
+  function makeSvgPinIcon(color, withLabel=false, labelText="") {
+    const svg = `
+    <svg class="pin-svg" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="${color}" d="M12 2C8.134 2 5 5.134 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.866-3.134-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5
+        a2.5 2.5 0 0 1 0 5z"/>
+    </svg>`;
+    const labelHtml = withLabel
+      ? `<div class="pin-label">${escapeHtml(labelText)}</div>`
+      : "";
+    const html = `<div class="pin-wrap">${svg}${labelHtml}</div>`;
+    return L.divIcon({
+      className: "",      // Leaflet 기본 클래스 제거
+      html,
+      iconSize: [26, 26],
+      iconAnchor: [13, 26] // 꼭짓점이 좌표를 가리키도록
+    });
+  }
+
   // ─────────────────────────────────────────────────────────
   // 지도 상태/유틸 (Leaflet + Geocoder + MAP.JSON)
   // ─────────────────────────────────────────────────────────
@@ -271,10 +301,17 @@
 
     geocoder = L.Control.geocoder({ defaultMarkGeocode: false })
       .on('markgeocode', (e) => {
-        const c = e.geocode.center;
-        const tmp = L.marker(c).addTo(map);
-        setTimeout(()=> map.removeLayer(tmp), 4000);
-        map.setView(c, 9);
+      const c = e.geocode.center;
+      
+      // CSS 변수에서 검색 핀 색을 읽어옴(없으면 기본 빨강)
+      const searchColor = getComputedStyle(document.documentElement).getPropertyValue('--pin-search').trim() || '#ef4444';
+      // 라벨을 “검색”으로 보여주고 싶으면 true, '검색'
+      const searchIcon  = makeSvgPinIcon(searchColor, true, '검색');
+      // 라벨 없이 점만 쓰고 싶다면: const searchIcon = makeSvgPinIcon(searchColor, false);
+      
+      const tmp = L.marker(c, { icon: searchIcon }).addTo(map);
+      setTimeout(()=> map.removeLayer(tmp), 4000);
+      map.setView(c, 9);
 
         // 검색 좌표 기준 최근접 등록 지역 자동 선택
         if (countryMarkers.length) {
@@ -306,7 +343,18 @@
     const pts = mapData[country];
     const bounds = [];
     pts.forEach(p => {
-      const m = L.marker([p.lat, p.lng]).addTo(markerLayer).bindPopup(p.name);
+      // CSS 변수에서 등록 핀 색을 읽어옴(없으면 기본 파랑)
+      const regColor = getComputedStyle(document.documentElement).getPropertyValue('--pin-reg').trim() || '#2563eb';
+      // 라벨을 표시하지 않으려면 두 번째 인자를 false로 유지
+      const regIcon  = makeSvgPinIcon(regColor, false /*withLabel*/, /*labelText*/ "");
+      
+      // 라벨을 핀 위에 표시하고 싶다면 위 줄 대신:
+      // const regIcon  = makeSvgPinIcon(regColor, true, p.name);
+      
+      const m = L.marker([p.lat, p.lng], { icon: regIcon })
+        .addTo(markerLayer)
+        .bindPopup(p.name);
+
       m.on('click', () => {
         regionCombo.setValue(p.name); // 핀 클릭 → 지역 세팅
         toast(`지역 선택: ${p.name}`);
