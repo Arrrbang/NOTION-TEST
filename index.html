@@ -73,13 +73,9 @@
       </div>
     </div>
     
-    <!-- ✅ CBM 드롭다운 추가 (1~60) -->
     <div class="row">
       <label>CBM</label>
-      <div class="combo" id="cbmCombo">
-        <input type="text" placeholder="1 ~ 60" autocomplete="off">
-        <div class="list"></div>
-      </div>
+      <input id="cbmInput" type="number" min="0" step="1" placeholder="숫자만 입력하세요." />
     </div>
 
 
@@ -229,6 +225,7 @@
     const region  = regionCombo.getValue();
     const type    = typeCombo.getValue();
     const roles   = Array.from(rolesBox.querySelectorAll('.pill.active')).map(p=>p.dataset.role);
+    const cbmVal = parseInt(document.getElementById('cbmInput').value, 10);
 
     if (!country || !company) {
       alert('국가와 업체를 선택하세요.');
@@ -240,6 +237,7 @@
     params.set('type', type);
     if (region) params.set('region', region);
     if (roles.length) params.set('roles', roles.join(','));
+    if (Number.isFinite(cbmVal)) params.set('cbm', String(cbmVal));
 
     const url = `${BASE}/api/costs/${encodeURIComponent(country)}?${params.toString()}`;
     try {
