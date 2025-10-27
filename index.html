@@ -618,6 +618,8 @@ async function ensureMapReady() {
     try {
       const res = await fetch(url);
       const j = await res.json();
+      // [ADD] 백엔드 응답의 numberFormats 저장
+      __numberFormats = j.numberFormats || {};
       document.getElementById('jsonOut').textContent = JSON.stringify(j, null, 2);
       renderTable(j, type, Boolean(region));
     } catch (e) {
@@ -648,6 +650,50 @@ async function ensureMapReady() {
   }
 
   // ─────────────────────────────────────────────────────────
+// [ADD] 통화 포맷 유틸 + 전역 포맷맵
+// ─────────────────────────────────────────────────────────
+let __numberFormats = {}; // 백엔드가 내려주는 { "20FT": "dollar", ... } 저장
+
+// Notion number.format → Intl 옵션 매핑
+const NOTION_FORMAT_TO_INTL = {
+  dollar: { currency: "USD", locale: "en-US", min: 2, max: 2 },
+  euro:   { currency: "EUR", locale: "en-IE", min: 2, max: 2 },
+  won:    { currency: "KRW", locale: "ko-KR", min: 0, max: 0 },
+  yen:    { currency: "JPY", locale: "ja-JP", min: 0, max: 0 },
+  pound:  { currency: "GBP", locale: "en-GB", min: 2, max: 2 },
+  // 필요 시 확장: rupee, franc, lira, etc.
+};
+
+function getIntlOptsByFormat(formatKey) {
+  const m = NOTION_FORMAT_TO_INTL[formatKey];
+  if (!m) return null;
+  const { currency, locale, min, max } = m;
+  return { currency, locale, min, max };
+}
+
+// 숫자 값 + 컬럼명 + 포맷맵으로 통화 표기
+function formatByColumn(value, columnName, numberFormats) {
+  if (value === null || value === undefined) return "";
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+
+  const fmtKey = numberFormats?.[columnName]; // e.g., "dollar", "won"
+  const opts = getIntlOptsByFormat(fmtKey);
+  if (!opts) {
+    // 포맷 정보 없으면 일반 천단위
+    return n.toLocaleString();
+  }
+  const { currency, locale, min, max } = opts;
+  return new Intl.NumberFormat(locale || "en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: min,
+    maximumFractionDigits: max
+  }).format(n);
+}
+
+  
+  // ─────────────────────────────────────────────────────────
   // 표 렌더링 (rows 순서 그대로, 추가내용은 HTML 그대로)
   // ─────────────────────────────────────────────────────────
   function renderTable(data, type, hasRegionFilter) {
@@ -667,7 +713,7 @@ async function ensureMapReady() {
       for (const row of rows) {
         html += `<tr>
           <td>${escapeHtml(row.item)}</td>
-          <td>${fmt(row[type])}</td>
+          <td>${formatByColumn(row[type], type, __numberFormats)}</td>
           <td>${row.extra ?? ''}</td>
         </tr>`;
       }
@@ -687,7 +733,7 @@ async function ensureMapReady() {
         for (const row of grouped[reg]) {
           html += `<tr>
             <td>${escapeHtml(row.item)}</td>
-            <td>${fmt(row[type])}</td>
+            <td>${formatByColumn(row[type], type, __numberFormats)}</td>
             <td>${row.extra ?? ''}</td>
           </tr>`;
         }
